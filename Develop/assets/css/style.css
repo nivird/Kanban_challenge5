@@ -1,0 +1,46 @@
+body {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+}
+
+.swim-lanes {
+  min-height: 60vh;
+}
+
+.task-card {
+  margin: 0 auto;
+}
+
+.task-card:hover {
+  cursor: grab;
+}
+
+.lane {
+  padding: 1rem;
+  background: #f8f9fa;
+}
+
+.card-body {
+  min-height: 200px;
+}
+
+.card-header {
+  background: #fff;
+  border-bottom: 2px solid #ccc;
+}
+
+.card-title {
+  font-size: 1.5rem;
+}
+
+.btn-close {
+  float: right;
+}
+
+.modal-body {
+  padding: 1rem;
+}
+
+#taskForm .form-control {
+  margin-bottom: 1rem;
+}
