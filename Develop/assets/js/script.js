@@ -4,8 +4,12 @@ let nextId = JSON.parse(localStorage.getItem("nextId")) || 1;
 
 // Create a function to generate a unique task id
 function generateTaskId() {
-  return nextId++;
+  nextId += 1;
+  localStorage.setItem("nextId", JSON.stringify(nextId));
+  return nextId;
 }
+
+
 
 // Create a function to create a task card
 function createTaskCard(task) {
@@ -33,76 +37,87 @@ function createTaskCard(task) {
 
 // Create a function to render the task list and make cards draggable
 function renderTaskList() {
-  $('#todo-cards').empty();
-  $('#in-progress-cards').empty();
-  $('#done-cards').empty();
-
-  taskList.forEach(task => {
-    const taskCard = createTaskCard(task);
-    $(`#${task.status}-cards`).append(taskCard);
-  });
-
-  // Make task cards draggable
-  $(".task-card").draggable({
-    revert: "invalid",
-    start: function () {
-      $(this).css('opacity', '0.5');
-    },
-    stop: function () {
-      $(this).css('opacity', '1');
+  const lanes = {
+    todo: $("#to-do"),
+    inProgress: $("#in-progress"),
+    done: $("#done"),
+  };
+  
+  // Clear existing tasks
+  Object.values(lanes).forEach(lane => {
+    if (lane.length === 0) {
+      console.error("Element not found for lane:", lane);
+    } else {
+      lane.empty();
     }
   });
-}
 
+
+  // Render each task
+  taskList.forEach(task => {
+    const taskCard = createTaskCard(task);
+   if(lanes[task.status]) {
+      lanes[task.status].append(taskCard);
+    } else {
+      console.error("Lane not found for status:", task.status);
+    }
+  });
+
+
+  // Make tasks draggable
+  $(".task-card").draggable({
+    revert: "invalid",
+    helper: "clone"
+  });
+}
 // Create a function to handle adding a new task
 function handleAddTask(event) {
   event.preventDefault();
 
-  const title = $('#taskTitle').val();
-  const description = $('#taskDescription').val();
-  const deadline = $('#taskDeadline').val();
+  const title = $("#taskTitle").val();
+  const description = $("#taskDescription").val();
+  const dueDate = $("#taskDeadline").val();
 
-  if (title && description && deadline) {
-    const task = {
-      id: generateTaskId(),
-      title,
-      description,
-      deadline,
-      status: 'to-do'
-    };
+  const id = generateTaskId();
 
-    taskList.push(task);
-    saveTasks();
-    renderTaskList();
+  const newTask = {
+    id: id,
+    title: title,
+    description: description,
+    deadline: dueDate, // Change `dueDate` to `deadline` to match other parts of the code
+    status: "todo"
+  };
 
-    $('#taskForm')[0].reset();
-    $('#formModal').modal('hide');
-  }
+  taskList.push(newTask);
+  localStorage.setItem("tasks", JSON.stringify(taskList));
+  renderTaskList();
+
+  // Clear form fields
+  $("#taskTitle").val("");
+  $("#taskDescription").val("");
+  $("#taskDeadline").val("");
 }
 
 // Create a function to handle deleting a task
 function handleDeleteTask(event) {
-  const taskId = $(event.target).closest('.task-card').data('id');
+  const taskId = $(event.target).closest(".task-card").data("id");
   taskList = taskList.filter(task => task.id !== taskId);
-  saveTasks();
+  localStorage.setItem("tasks", JSON.stringify(taskList));
   renderTaskList();
 }
 
 // Create a function to handle dropping a task into a new status lane
 function handleDrop(event, ui) {
-  const taskId = ui.draggable.data('id');
-  const newStatus = $(this).attr('id').split('-')[0];
+  
+  const taskId = ui.draggable.data("id");
+  const newStatus = $(event.target).data("status");
 
-  taskList.forEach(task => {
-    if (task.id === taskId) {
-      task.status = newStatus;
-    }
-  });
-
-  saveTasks();
+  taskList = taskList.map(task =>
+    task.id === taskId ? { ...task, status: newStatus } : task
+  );
+  localStorage.setItem("tasks", JSON.stringify(taskList));
   renderTaskList();
 }
-
 // Save tasks to localStorage
 function saveTasks() {
   localStorage.setItem('tasks', JSON.stringify(taskList));
@@ -111,17 +126,27 @@ function saveTasks() {
 
 // When the page loads, render the task list, add event listeners, make lanes droppable, and make the due date field a date picker
 $(document).ready(function () {
+  // Initialize task list and nextId if they don't exist in localStorage
+  if (!taskList) {
+    taskList = [];
+    localStorage.setItem("tasks", JSON.stringify(taskList));
+  }
+  if (!nextId) {
+    nextId = 0;
+    localStorage.setItem("nextId", JSON.stringify(nextId));
+  }
+
   renderTaskList();
+ // Add event listeners
+  $("#add-task-form").on("submit", handleAddTask);
+  $(document).on("click", ".delete-task", handleDeleteTask);
 
-  $('#taskForm').on('submit', handleAddTask);
-  $(document).on('click', '.delete-task', handleDeleteTask);
-
-  $(".lane").droppable({
+  // Make lanes droppable
+  $(".task-lane").droppable({
     accept: ".task-card",
     drop: handleDrop
   });
 
-  $("#taskDeadline").datepicker({
-    dateFormat: 'yy-mm-dd'
-  });
+  // Make due date field a date picker
+  $("#task-due-date").datepicker();
 });
